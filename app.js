@@ -1,21 +1,21 @@
-// jshint esversion:6
+//jshint esversion:6
 
-import dotenv from "dotenv";
+import dotenv from "dotenv"
 import express from "express";
 import bodyParser from "body-parser";
 import ejs from "ejs";
-import mongoose from "mongoose";
+import mongoose from "mongoose";  
 import encrypt from "mongoose-encryption";
+import md5 from "md5";
 
-// Load environment variables from .env file
 dotenv.config();
 
-const app = express();
 
+const app = express();
+console.log(process.env.API_KEY)
 app.use(express.static("public"));
 app.set('view engine', "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
-
 const port = 3000;
 
 mongoose.connect("mongodb://localhost:27017/userDB", { useNewUrlParser: true, useUnifiedTopology: true });
@@ -25,9 +25,7 @@ const userSchema = new mongoose.Schema({
     password: String
 });
 
-
-userSchema.plugin(encrypt, { secret: process.env.SECRET_KEY, encryptedFields: ["password"] });
-
+ 
 const User = mongoose.model("User", userSchema);
 
 app.get('/', (req, res) => {
@@ -42,21 +40,160 @@ app.get('/register', (req, res) => {
     res.render("register");
 });
 
-app.post('/register', (req, res) => {
-    const newUser = new User({
-        email: req.body.username,
-        password: req.body.password
-    });
+app.post('/register', async (req, res) => {
+    try {
+        const newUser = new User({
+            email: req.body.username,
+            password: md5(req.body.password)
+        });
+        
+        await newUser.save();
+        res.render("secrets");
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("An error occurred while registering the user.");
+    }
+});
 
-    newUser.save(function(err) {
-        if (err) {
-            console.log(err);
+app.post('/login', async (req, res) => {
+    const username = req.body.username;
+    const password = md5(req.body.password)
+    try {
+        const foundUser = await User.findOne({ email: username }).exec(); // .exec() is optional but good practice for consistency
+
+        if (foundUser && foundUser.password === password) {
+            res.render("secrets")   
+         
         } else {
-            res.render("secrets");
+            console.log("email or passowrd incorrect! try again")
         }
-    });
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("An error occurred while finding the user.");
+    }
 });
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
