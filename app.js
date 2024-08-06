@@ -40,7 +40,8 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String,
     googleId: String,
-    facebookId: String
+    facebookId: String,
+    secret: String
 });
 
 
@@ -100,6 +101,7 @@ passport.use(new FacebookStrategy({
 ));
 
 
+
 app.get('/', (req, res) => {
     res.render("home");
 });
@@ -136,13 +138,58 @@ app.get('/register', (req, res) => {
     res.render("register");
 });
 
-app.get('/secrets', (req, res) => {
+app.get('/secrets', async (req, res) => {
+    try {
+        const foundUser = await User.find({"secret": {$ne: null}})
+
+        if (!foundUser){
+            console.log(err)
+            return res.status(404).send('somthing went wrong')
+        } 
+        res.render("secrets", {userWithSecrets: foundUser})
+
+    } catch (err) {
+        // Handle any errors that occurred during the find or save operations
+        console.error(err);
+        res.status(500).send('An error occurred'); }
+
+});
+
+app.get("/submit", (req, res) => {
     if (req.isAuthenticated()) {
-        res.render("secrets");
+        res.render("submit");
     } else {
         res.redirect("/login");
     }
-})
+});
+
+app.post("/submit", async (req, res) => {
+    const submittedSecret = req.body.secret;
+    const userId = req.user.id;
+
+    try {
+        // Find the user by ID
+        const foundUser = await User.findById(userId);
+
+        if (!foundUser) {
+            // Handle the case where no user is found
+            console.log('No user found');
+            return res.status(404).send('User not found');
+        }
+
+        // Update the user's secret and save
+        foundUser.secret = submittedSecret;
+        await foundUser.save();
+        console.log(foundUser)
+        // Redirect to the secrets page
+        res.redirect("/secrets");
+    } catch (err) {
+        // Handle any errors that occurred during the find or save operations
+        console.error(err);
+        res.status(500).send('An error occurred');
+    }
+});
+
 
 app.post('/register', async (req, res) => {
     User.register({username: req.body.username}, req.body.password, function(err, user) {
@@ -182,6 +229,8 @@ app.get('/logout', function(req, res, next) {
       res.redirect('/');
     });
   });
+
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);  
 });
